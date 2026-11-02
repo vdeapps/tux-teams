@@ -22,6 +22,23 @@ slint = "1.18.1"
 slint-build = "1.18.1"
 i-slint-backend-testing = "1.18.1"
 tuxteams-ui = { path = "crates/tuxteams-ui" }
+tuxteams-domaine = { path = "crates/tuxteams-domaine" }
+tuxteams-application = { path = "crates/tuxteams-application" }
+tuxteams-auth = { path = "crates/tuxteams-auth" }
+async-trait = "0.1.92"
+chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+reqwest = { version = "0.13.5", features = ["form"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = "1.54.1"
+tokio-util = "0.7.20"
+tracing = "0.1.44"
+url = "2.5.8"
+base64 = "0.22"
+wiremock = "0.6.5"
+arboard = { version = "3.7.0", default-features = false, features = ["wayland-data-control"] }
+webbrowser = "1.2.6"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

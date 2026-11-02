@@ -1,0 +1,7 @@
+{
+  "error": "expired_token",
+  "error_description": "AADSTS70019: Verification code expired. Restart the device flow.",
+  "error_codes": [
+    70019
+  ]
+}

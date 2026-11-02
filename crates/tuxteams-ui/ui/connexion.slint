@@ -1,0 +1,327 @@
+import { Theme } from "theme.slint";
+
+// Bouton de l'écran de connexion (36 px). `principal` : plein accent / texte-sur-accent ;
+// sinon bouton secondaire à bordure. Atteignable au clavier (Tab, Entrée, Espace), anneau de
+// focus 2 px accent.
+component Bouton inherits Rectangle {
+    in property <string> libelle;
+    in property <bool> principal: false;
+    callback clique();
+
+    height: 36px;
+    border-radius: 4px;
+    background: root.principal
+        ? (zone.pressed ? Theme.accent.darker(0.2) : zone.has-hover ? Theme.accent.darker(0.1) : Theme.accent)
+        : (zone.has-hover ? Theme.surface-survol : Theme.surface);
+    border-width: root.principal ? 0px : 1px;
+    border-color: Theme.bordure;
+    accessible-role: button;
+    accessible-label: root.libelle;
+    accessible-action-default => {
+        root.clique();
+    }
+
+    focus := FocusScope {
+        key-pressed(evenement) => {
+            if (evenement.text == "\n" || evenement.text == " ") {
+                root.clique();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    zone := TouchArea {
+        clicked => {
+            focus.focus();
+            root.clique();
+        }
+    }
+
+    // Anneau de focus visible (2 px, accent), détaché du bord du bouton.
+    Rectangle {
+        x: -3px;
+        y: -3px;
+        width: parent.width + 6px;
+        height: parent.height + 6px;
+        border-radius: 7px;
+        border-width: 2px;
+        border-color: Theme.accent;
+        visible: focus.has-focus;
+    }
+
+    Text {
+        text: root.libelle;
+        font-size: 14px;
+        font-weight: 600;
+        color: root.principal ? Theme.texte-sur-accent : Theme.texte;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        accessible-role: none;
+    }
+}
+
+// Carte centrée de connexion par code d'appareil (device code).
+// `etat` : 0 accueil, 1 demande du code en cours, 2 code affiché, 3 échec.
+export component EcranConnexion inherits Rectangle {
+    in property <int> etat: 0;
+    in property <string> code;
+    in property <string> url;
+    in property <string> expiration-texte;
+    in property <string> message-erreur;
+    callback se-connecter();
+    callback copier-et-ouvrir();
+    callback annuler();
+
+    background: Theme.fond;
+    accessible-role: groupbox;
+    accessible-label: "Connexion";
+
+    VerticalLayout {
+        alignment: center;
+        padding: 16px;
+        // Carte centrée : deux espaceurs extensibles de part et d'autre ; la largeur de la
+        // carte ne dépend jamais de `root.width` (pas de boucle de liaison).
+        HorizontalLayout {
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+            carte := Rectangle {
+                preferred-width: 440px;
+                max-width: 440px;
+                horizontal-stretch: 0;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: Theme.bordure;
+                background: Theme.surface;
+                drop-shadow-blur: 16px;
+                drop-shadow-offset-y: 4px;
+                drop-shadow-color: #00000014;
+
+                contenu := VerticalLayout {
+                    padding: 32px;
+                    spacing: 16px;
+
+            // Pastille de marque : même langage que les états vides.
+            HorizontalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 72px;
+                    height: 72px;
+                    border-radius: 36px;
+                    background: Theme.accent-doux;
+                    Image {
+                        width: 36px;
+                        height: 36px;
+                        colorize: Theme.accent;
+                        source: @image-url("../assets/icones/ic_fluent_chat_48_regular.svg");
+                    }
+                }
+            }
+
+            Text {
+                text: "Connexion à TuxTeams";
+                font-size: 20px;
+                font-weight: 700;
+                color: Theme.texte;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+
+            if root.etat == 0: Text {
+                text: "Connectez-vous avec votre compte professionnel ou scolaire Microsoft. Un code vous sera proposé à saisir dans votre navigateur.";
+                color: Theme.texte-secondaire;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+            if root.etat == 0: Bouton {
+                libelle: "Se connecter";
+                principal: true;
+                clique => {
+                    root.se-connecter();
+                }
+            }
+
+            if root.etat == 1: Text {
+                text: "Demande du code en cours…";
+                color: Theme.texte-secondaire;
+                horizontal-alignment: center;
+                accessible-role: text;
+                accessible-live-region: polite;
+            }
+            if root.etat == 1: Bouton {
+                libelle: "Annuler";
+                clique => {
+                    root.annuler();
+                }
+            }
+
+            if root.etat == 2: Text {
+                text: "Saisissez ce code sur la page de connexion Microsoft :";
+                color: Theme.texte-secondaire;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+            if root.etat == 2: Rectangle {
+                height: 72px;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: Theme.bordure;
+                background: Theme.fond;
+                // Sélectionnable (lecture seule) pour copier le code à la main.
+                TextInput {
+                    text: root.code;
+                    read-only: true;
+                    single-line: true;
+                    font-family: "monospace";
+                    font-size: 32px;
+                    font-weight: 700;
+                    letter-spacing: 4px;
+                    color: Theme.texte;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    accessible-label: "Code de connexion";
+                }
+            }
+            if root.etat == 2: HorizontalLayout {
+                alignment: center;
+                spacing: 4px;
+                Text {
+                    text: "Page :";
+                    color: Theme.texte-secondaire;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                }
+                TextInput {
+                    text: root.url;
+                    read-only: true;
+                    single-line: true;
+                    font-size: 12px;
+                    color: Theme.accent;
+                    vertical-alignment: center;
+                    accessible-label: "Adresse de connexion";
+                }
+            }
+            if root.etat == 2: Bouton {
+                libelle: "Copier le code et ouvrir le navigateur";
+                principal: true;
+                clique => {
+                    root.copier-et-ouvrir();
+                }
+            }
+            if root.etat == 2 && root.message-erreur != "": Text {
+                text: root.message-erreur;
+                font-size: 12px;
+                color: Theme.danger;
+                wrap: word-wrap;
+                accessible-role: text;
+                accessible-live-region: assertive;
+            }
+            if root.etat == 2: Bouton {
+                libelle: "Annuler";
+                clique => {
+                    root.annuler();
+                }
+            }
+            if root.etat == 2: HorizontalLayout {
+                alignment: center;
+                spacing: 8px;
+                Rectangle {
+                    width: 8px;
+                    height: 8px;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: 4px;
+                    background: Theme.accent;
+                }
+                Text {
+                    text: "En attente de votre connexion…";
+                    font-size: 12px;
+                    color: Theme.texte-secondaire;
+                    accessible-role: text;
+                    accessible-live-region: polite;
+                }
+            }
+            if root.etat == 2: Text {
+                text: root.expiration-texte;
+                font-size: 12px;
+                color: Theme.texte-secondaire;
+                horizontal-alignment: center;
+            }
+
+            if root.etat == 3: Rectangle {
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: Theme.danger;
+                background: Theme.surface;
+                accessible-role: groupbox;
+                accessible-label: "Erreur de connexion";
+                height: erreur.preferred-height + 24px;
+                erreur := HorizontalLayout {
+                    x: 12px;
+                    y: 12px;
+                    width: parent.width - 24px;
+                    spacing: 12px;
+                    Rectangle {
+                        width: 20px;
+                        height: 20px;
+                        y: 0px;
+                        border-radius: 10px;
+                        background: Theme.danger;
+                        Text {
+                            text: "!";
+                            font-size: 13px;
+                            font-weight: 700;
+                            color: Theme.texte-sur-accent;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                            accessible-role: none;
+                        }
+                    }
+                    Text {
+                        text: root.message-erreur;
+                        color: Theme.texte;
+                        wrap: word-wrap;
+                        horizontal-stretch: 1;
+                        accessible-role: text;
+                        accessible-live-region: assertive;
+                    }
+                }
+            }
+            if root.etat == 3: Bouton {
+                libelle: "Réessayer";
+                principal: true;
+                clique => {
+                    root.se-connecter();
+                }
+            }
+                }
+            }
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+        }
+    }
+}
+
+export component FenetreConnexion inherits Window {
+    in-out property <bool> sombre <=> Theme.sombre;
+    in-out property <int> etat <=> ecran.etat;
+    in-out property <string> code <=> ecran.code;
+    in-out property <string> url <=> ecran.url;
+    in-out property <string> expiration-texte <=> ecran.expiration-texte;
+    in-out property <string> message-erreur <=> ecran.message-erreur;
+    callback se-connecter <=> ecran.se-connecter;
+    callback copier-et-ouvrir <=> ecran.copier-et-ouvrir;
+    callback annuler <=> ecran.annuler;
+
+    preferred-width: 1100px;
+    preferred-height: 720px;
+    min-width: 480px;
+    min-height: 360px;
+    title: "TuxTeams — Connexion";
+    background: Theme.fond;
+    default-font-family: Theme.police;
+    default-font-size: 14px;
+
+    ecran := EcranConnexion { }
+}

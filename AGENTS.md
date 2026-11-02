@@ -36,3 +36,15 @@ Tests : nom français qui énonce la règle (`refuse_un_corps_d_envoi_avec_champ
 - Fixtures : procédure dans `docs/fixtures.md` (capture réelle anonymisée, jamais de secret ni de contenu réel).
 - Journalisation sans secret : jamais de token, de contenu de message ni d'identifiant personnel dans les logs.
 - Licences tierces : `THIRD_PARTY_LICENSES.md`.
+
+## Lancer la connexion réelle (recette)
+
+`make run` ouvre l'écran de connexion (device code Microsoft) puis la fenêtre principale avec les
+initiales du compte. Aucun jeton n'est conservé (persistance : tâche 3).
+
+- Compte professionnel ou scolaire uniquement ; un compte personnel est refusé avec un message.
+- Surcharges (variables d'environnement) : `TUXTEAMS_CLIENT_ID` (UUID), `TUXTEAMS_TENANT`
+  (défaut `organizations`).
+- À vérifier tôt : l'accès conditionnel du tenant. Une réponse `AADSTS53003` affiche « Votre
+  organisation interdit la connexion par code » ; la webview PKCE (tâche 29) passe alors après la tâche 4.
+- Les tests n'ouvrent jamais de connexion réelle (wiremock, doubles de ports).

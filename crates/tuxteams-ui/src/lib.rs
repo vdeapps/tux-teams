@@ -2,6 +2,7 @@
 //!
 //! Composants minces : aucune logique métier ici, uniquement de la présentation.
 
+pub mod connexion;
 pub mod theme;
 
 /// Code généré par Slint : les lints `clippy::unwrap_used` s'y appliquent à du code que nous

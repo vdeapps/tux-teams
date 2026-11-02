@@ -56,18 +56,21 @@ component ChampRecherche inherits Rectangle {
 }
 
 // Avatar de l'utilisateur : initiales sur l'accent et pastille de présence.
-// Tant que la connexion n'existe pas, données fictives explicites : « ?? », hors ligne.
+// Sans nom de compte connu : « ?? ». La pastille reste « hors ligne » (présence : plus tard).
 component Avatar inherits Rectangle {
+    in property <string> initiales: "??";
+    in property <string> libelle-profil: "Profil : non connecté";
+
     width: 32px;
     height: 32px;
     accessible-role: image;
-    accessible-label: "Profil : non connecté";
+    accessible-label: root.libelle-profil;
 
     Rectangle {
         border-radius: self.width / 2;
         background: Theme.accent;
         Text {
-            text: "??";
+            text: root.initiales;
             font-size: 12px;
             font-weight: 600;
             color: Theme.texte-sur-accent;
@@ -96,6 +99,9 @@ component Avatar inherits Rectangle {
 
 // Barre supérieure (48 px) : recherche centrée, avatar à droite.
 export component BarreSuperieure inherits Rectangle {
+    in property <string> initiales: "??";
+    in property <string> libelle-profil: "Profil : non connecté";
+
     height: 48px;
     background: Theme.surface;
     accessible-role: groupbox;
@@ -115,6 +121,8 @@ export component BarreSuperieure inherits Rectangle {
     }
 
     Avatar {
+        initiales: root.initiales;
+        libelle-profil: root.libelle-profil;
         x: parent.width - self.width - 16px;
         y: (parent.height - self.height) / 2;
     }

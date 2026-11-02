@@ -1,4 +1,7 @@
-.PHONY: test lint format format-check typecheck qualite
+.PHONY: run test lint format format-check typecheck qualite
+
+run:
+	cargo run -p tuxteams
 
 test:
 	cargo test --workspace

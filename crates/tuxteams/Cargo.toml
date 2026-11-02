@@ -8,6 +8,15 @@ publish.workspace = true
 [dependencies]
 slint = { workspace = true }
 tuxteams-ui = { workspace = true }
+tuxteams-domaine = { workspace = true }
+tuxteams-application = { workspace = true }
+tuxteams-auth = { workspace = true }
+arboard = { workspace = true }
+async-trait = { workspace = true }
+chrono = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "time"] }
+url = { workspace = true }
+webbrowser = { workspace = true }
 
 [lints]
 workspace = true
