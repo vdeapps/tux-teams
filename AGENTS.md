@@ -37,6 +37,8 @@ Tests : nom français qui énonce la règle (`refuse_un_corps_d_envoi_avec_champ
 - Fixtures : procédure dans `docs/fixtures.md` (capture réelle anonymisée, jamais de secret ni de contenu réel).
 - Journalisation sans secret : jamais de token, de contenu de message ni d'identifiant personnel dans les logs.
 - Licences tierces : `THIRD_PARTY_LICENSES.md`.
+- Design : référence unique `docs/ia/design/DESIGN.md` (tokens, composants, mise en page, états), maquettes dans
+  `docs/ia/design/maquettes/`. Toute interface s'y conforme et est vérifiée par capture réelle comparée aux maquettes.
 
 ## Lancer la connexion réelle (recette)
 
