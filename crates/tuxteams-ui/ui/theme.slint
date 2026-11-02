@@ -1,0 +1,21 @@
+// Tokens de design (Fluent 2 adapté) : source unique des couleurs, voir DESIGN.md.
+export global Theme {
+    // Bascule clair/sombre ; la composition la règle d'après le thème du système.
+    in-out property <bool> sombre: false;
+
+    out property <color> accent: sombre ? #7F85F5 : #5B5FC7;
+    out property <color> accent-doux: sombre ? #2F2F4A : #EBEBF8;
+    out property <color> fond: sombre ? #1F1F1F : #F5F5F5;
+    out property <color> surface: sombre ? #292929 : #FFFFFF;
+    out property <color> surface-survol: sombre ? #333333 : #F0F0F0;
+    out property <color> texte: sombre ? #FFFFFF : #242424;
+    out property <color> texte-secondaire: sombre ? #ADADAD : #616161;
+    out property <color> bordure: sombre ? #3D3D3D : #E0E0E0;
+    // Blanc sur #7F85F5 = 3.19:1 (refusé) : texte sombre sur l'accent en thème sombre.
+    out property <color> texte-sur-accent: sombre ? #1F1F1F : #FFFFFF;
+    // Libellé de l'élément actif du rail, lu sur `accent-doux`.
+    out property <color> texte-rail-actif: texte;
+    out property <color> danger: sombre ? #F1707B : #C4314B;
+
+    out property <string> police: "Inter";
+}

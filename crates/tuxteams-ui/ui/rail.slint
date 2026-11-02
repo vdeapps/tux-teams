@@ -1,0 +1,126 @@
+import { Theme } from "theme.slint";
+
+// Élément du rail : occupe toute la largeur du rail. Le bouton (64 × 56) est centré ; la barre
+// d'accent de l'élément actif est collée au bord gauche du rail, hors du bouton.
+component ElementRail {
+    in property <string> libelle;
+    in property <image> icone;
+    in property <image> icone-pleine;
+    in property <bool> actif;
+    callback active();
+
+    height: 56px;
+    accessible-role: tab;
+    accessible-label: root.libelle;
+    accessible-checkable: true;
+    accessible-checked: root.actif;
+    accessible-action-default => {
+        root.active();
+    }
+
+    zone := TouchArea {
+        clicked => {
+            root.active();
+        }
+    }
+
+    bouton := Rectangle {
+        x: (parent.width - self.width) / 2;
+        width: 64px;
+        height: parent.height;
+        border-radius: 6px;
+        background: root.actif ? Theme.accent-doux : zone.has-hover ? Theme.surface-survol : transparent;
+    }
+
+    barre-accent := Rectangle {
+        x: 0px;
+        y: (parent.height - self.height) / 2;
+        width: 3px;
+        height: 24px;
+        border-radius: 1.5px;
+        background: Theme.accent;
+        visible: root.actif;
+    }
+
+    icone := Image {
+        x: (parent.width - self.width) / 2;
+        y: 8px;
+        width: 24px;
+        height: 24px;
+        source: root.actif ? root.icone-pleine : root.icone;
+        colorize: root.actif ? Theme.accent : Theme.texte-secondaire;
+    }
+
+    libelle := Text {
+        x: 2px;
+        y: icone.y + icone.height + 4px;
+        width: parent.width - 4px;
+        text: root.libelle;
+        horizontal-alignment: center;
+        font-size: 10px;
+        // « Conversation » en 600 tient dans le bouton de 64 px avec une marge visible.
+        letter-spacing: -0.2px;
+        font-weight: root.actif ? 600 : 400;
+        color: root.actif ? Theme.texte-rail-actif : Theme.texte-secondaire;
+        accessible-role: none;
+    }
+}
+
+export component Rail inherits Rectangle {
+    // 0 Activité, 1 Conversation, 2 Calendrier, 3 Paramètres.
+    in-out property <int> actif: 0;
+
+    width: 76px;
+    background: Theme.surface;
+    accessible-role: tab-list;
+    accessible-label: "Navigation principale";
+
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        background: Theme.bordure;
+    }
+
+    VerticalLayout {
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 4px;
+        ElementRail {
+            libelle: "Activité";
+            icone: @image-url("../assets/icones/ic_fluent_alert_24_regular.svg");
+            icone-pleine: @image-url("../assets/icones/ic_fluent_alert_24_filled.svg");
+            actif: root.actif == 0;
+            active => {
+                root.actif = 0;
+            }
+        }
+        ElementRail {
+            libelle: "Conversation";
+            icone: @image-url("../assets/icones/ic_fluent_chat_24_regular.svg");
+            icone-pleine: @image-url("../assets/icones/ic_fluent_chat_24_filled.svg");
+            actif: root.actif == 1;
+            active => {
+                root.actif = 1;
+            }
+        }
+        ElementRail {
+            libelle: "Calendrier";
+            icone: @image-url("../assets/icones/ic_fluent_calendar_ltr_24_regular.svg");
+            icone-pleine: @image-url("../assets/icones/ic_fluent_calendar_ltr_24_filled.svg");
+            actif: root.actif == 2;
+            active => {
+                root.actif = 2;
+            }
+        }
+        Rectangle { }
+        ElementRail {
+            libelle: "Paramètres";
+            icone: @image-url("../assets/icones/ic_fluent_settings_24_regular.svg");
+            icone-pleine: @image-url("../assets/icones/ic_fluent_settings_24_filled.svg");
+            actif: root.actif == 3;
+            active => {
+                root.actif = 3;
+            }
+        }
+    }
+}

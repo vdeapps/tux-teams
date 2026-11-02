@@ -1,0 +1,63 @@
+import { Theme } from "theme.slint";
+
+// Zone de contenu : état vide centré, propre à la vue active du rail.
+export component ZoneContenu inherits Rectangle {
+    // 0 Activité, 1 Conversation, 2 Calendrier, 3 Paramètres.
+    in property <int> vue;
+
+    background: Theme.fond;
+    accessible-role: groupbox;
+    accessible-label: "Contenu";
+
+    VerticalLayout {
+        alignment: center;
+        padding: 24px;
+        spacing: 8px;
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 96px;
+                height: 96px;
+                border-radius: 48px;
+                background: Theme.accent-doux;
+                Image {
+                    width: 48px;
+                    height: 48px;
+                    colorize: Theme.accent;
+                    source: root.vue == 0 ? @image-url("../assets/icones/ic_fluent_alert_48_regular.svg")
+                        : root.vue == 1 ? @image-url("../assets/icones/ic_fluent_chat_48_regular.svg")
+                        : root.vue == 2 ? @image-url("../assets/icones/ic_fluent_calendar_ltr_48_regular.svg")
+                        : @image-url("../assets/icones/ic_fluent_settings_48_regular.svg");
+                }
+            }
+        }
+        Rectangle {
+            height: 8px;
+        }
+        Text {
+            text: root.vue == 0 ? "Aucune activité pour le moment"
+                : root.vue == 1 ? "Sélectionnez une conversation"
+                : root.vue == 2 ? "Votre calendrier s'affichera ici"
+                : "Paramètres à venir";
+            font-size: 18px;
+            font-weight: 600;
+            color: Theme.texte;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
+        HorizontalLayout {
+            alignment: center;
+            Text {
+                max-width: 360px;
+                text: root.vue == 0 ? "Les mentions, réponses et réactions apparaîtront ici."
+                    : root.vue == 1 ? "Choisissez une conversation dans la liste pour afficher ses messages."
+                    : root.vue == 2 ? "Vos réunions apparaîtront après la connexion."
+                    : "Les réglages de TuxTeams seront disponibles ici.";
+                font-size: 14px;
+                color: Theme.texte-secondaire;
+                horizontal-alignment: center;
+                wrap: word-wrap;
+            }
+        }
+    }
+}

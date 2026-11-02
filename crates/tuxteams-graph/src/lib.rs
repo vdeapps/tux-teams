@@ -1,0 +1,1 @@
+//! Adaptateur Microsoft Graph.

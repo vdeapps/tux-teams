@@ -1,0 +1,121 @@
+import { Theme } from "theme.slint";
+
+// Champ de recherche (non fonctionnel pour l'instant) : loupe, invite, raccourci Ctrl+K.
+component ChampRecherche inherits Rectangle {
+    height: 32px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: zone.has-hover ? Theme.texte-secondaire : Theme.bordure;
+    background: Theme.fond;
+    accessible-role: text-input;
+    accessible-label: "Rechercher (Ctrl+K)";
+    accessible-read-only: true;
+
+    zone := TouchArea { }
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 8px;
+        spacing: 8px;
+        alignment: stretch;
+        Image {
+            y: (parent.height - self.height) / 2;
+            width: 16px;
+            height: 16px;
+            source: @image-url("../assets/icones/ic_fluent_search_20_regular.svg");
+            colorize: Theme.texte-secondaire;
+            vertical-alignment: center;
+        }
+        Text {
+            text: "Rechercher";
+            vertical-alignment: center;
+            color: Theme.texte-secondaire;
+            overflow: elide;
+            horizontal-stretch: 1;
+        }
+        // Pastille du raccourci clavier.
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                height: 20px;
+                border-radius: 4px;
+                background: Theme.surface-survol;
+                HorizontalLayout {
+                    padding-left: 6px;
+                    padding-right: 6px;
+                    Text {
+                        text: "Ctrl+K";
+                        font-size: 12px;
+                        vertical-alignment: center;
+                        color: Theme.texte-secondaire;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Avatar de l'utilisateur : initiales sur l'accent et pastille de présence.
+// Tant que la connexion n'existe pas, données fictives explicites : « ?? », hors ligne.
+component Avatar inherits Rectangle {
+    width: 32px;
+    height: 32px;
+    accessible-role: image;
+    accessible-label: "Profil : non connecté";
+
+    Rectangle {
+        border-radius: self.width / 2;
+        background: Theme.accent;
+        Text {
+            text: "??";
+            font-size: 12px;
+            font-weight: 600;
+            color: Theme.texte-sur-accent;
+            accessible-role: none;
+        }
+    }
+
+    // Pastille « hors ligne » : anneau gris détouré sur la surface.
+    Rectangle {
+        x: parent.width - self.width + 1px;
+        y: parent.height - self.height + 1px;
+        width: 12px;
+        height: 12px;
+        border-radius: self.width / 2;
+        background: Theme.surface;
+        Rectangle {
+            width: 8px;
+            height: 8px;
+            border-radius: self.width / 2;
+            border-width: 1.5px;
+            border-color: Theme.texte-secondaire;
+            background: Theme.surface;
+        }
+    }
+}
+
+// Barre supérieure (48 px) : recherche centrée, avatar à droite.
+export component BarreSuperieure inherits Rectangle {
+    height: 48px;
+    background: Theme.surface;
+    accessible-role: groupbox;
+    accessible-label: "Barre supérieure";
+
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.bordure;
+    }
+
+    ChampRecherche {
+        // Marge réservée de chaque côté pour l'avatar : 16 + 32 + 16.
+        width: min(480px, parent.width - 2 * 64px);
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+    }
+
+    Avatar {
+        x: parent.width - self.width - 16px;
+        y: (parent.height - self.height) / 2;
+    }
+}

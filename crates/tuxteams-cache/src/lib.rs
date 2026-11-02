@@ -1,0 +1,1 @@
+//! Adaptateur de cache local.

@@ -1,0 +1,41 @@
+import "../assets/polices/Inter/Inter-Regular.ttf";
+import "../assets/polices/Inter/Inter-SemiBold.ttf";
+import "../assets/polices/Inter/Inter-Bold.ttf";
+import { Theme } from "theme.slint";
+import { Rail } from "rail.slint";
+import { BarreSuperieure } from "barre.slint";
+import { PanneauListe } from "panneau.slint";
+import { ZoneContenu } from "contenu.slint";
+export { Theme }
+
+export component Fenetre inherits Window {
+    in-out property <bool> sombre <=> Theme.sombre;
+    in-out property <int> onglet-actif <=> rail.actif;
+    out property <color> fond-fenetre: Theme.fond;
+
+    preferred-width: 1100px;
+    preferred-height: 720px;
+    min-width: 480px;
+    min-height: 360px;
+    title: "TuxTeams";
+    background: Theme.fond;
+    default-font-family: Theme.police;
+    default-font-size: 14px;
+
+    HorizontalLayout {
+        rail := Rail { }
+        VerticalLayout {
+            BarreSuperieure { }
+            HorizontalLayout {
+                // Activité et Conversation ont un panneau de liste ; Calendrier est pleine largeur.
+                if rail.actif == 0 || rail.actif == 1: PanneauListe {
+                    titre: rail.actif == 0 ? "Activité" : "Conversation";
+                    nouvelle-conversation: rail.actif == 1;
+                }
+                ZoneContenu {
+                    vue: rail.actif;
+                }
+            }
+        }
+    }
+}

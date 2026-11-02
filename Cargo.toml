@@ -1,0 +1,31 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/tuxteams-domaine",
+    "crates/tuxteams-application",
+    "crates/tuxteams-teams",
+    "crates/tuxteams-graph",
+    "crates/tuxteams-auth",
+    "crates/tuxteams-cache",
+    "crates/tuxteams-ui",
+    "crates/tuxteams",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+publish = false
+
+[workspace.dependencies]
+slint = "1.18.1"
+slint-build = "1.18.1"
+i-slint-backend-testing = "1.18.1"
+tuxteams-ui = { path = "crates/tuxteams-ui" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+unwrap_used = "deny"

@@ -1,0 +1,127 @@
+import { Theme } from "theme.slint";
+
+// Bouton icône discret (32 × 32) de l'en-tête du panneau ; sans action pour l'instant.
+component BoutonIcone inherits Rectangle {
+    in property <image> icone;
+    in property <string> libelle;
+
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    background: zone.has-hover ? Theme.surface-survol : transparent;
+    accessible-role: button;
+    accessible-label: root.libelle;
+
+    zone := TouchArea { }
+
+    Image {
+        width: 20px;
+        height: 20px;
+        source: root.icone;
+        colorize: Theme.texte-secondaire;
+    }
+}
+
+// Ligne squelette : avatar rond et deux barres arrondies, symbolise le chargement.
+component LigneSquelette {
+    in property <float> proportion;
+
+    height: 56px;
+
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 12px;
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: 16px;
+                background: Theme.surface-survol;
+            }
+        }
+        VerticalLayout {
+            alignment: center;
+            spacing: 8px;
+            Rectangle {
+                height: 12px;
+                Rectangle {
+                    x: 0px;
+                    width: parent.width * root.proportion;
+                    border-radius: 4px;
+                    background: Theme.surface-survol;
+                }
+            }
+            Rectangle {
+                height: 8px;
+                Rectangle {
+                    x: 0px;
+                    width: parent.width * min(1, root.proportion + 0.25);
+                    border-radius: 4px;
+                    background: Theme.surface-survol;
+                }
+            }
+        }
+    }
+}
+
+// Panneau de liste (320 px) : titre de vue, actions discrètes, lignes en chargement.
+export component PanneauListe inherits Rectangle {
+    in property <string> titre;
+    in property <bool> nouvelle-conversation;
+
+    width: 320px;
+    background: Theme.surface;
+    accessible-role: list;
+    accessible-label: "Panneau de liste";
+
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        background: Theme.bordure;
+    }
+
+    VerticalLayout {
+        alignment: start;
+        HorizontalLayout {
+            height: 56px;
+            padding-left: 16px;
+            padding-right: 12px;
+            spacing: 4px;
+            Text {
+                text: root.titre;
+                font-size: 20px;
+                font-weight: 700;
+                color: Theme.texte;
+                vertical-alignment: center;
+                overflow: elide;
+                horizontal-stretch: 1;
+            }
+            VerticalLayout {
+                alignment: center;
+                BoutonIcone {
+                    libelle: "Filtrer";
+                    icone: @image-url("../assets/icones/ic_fluent_filter_20_regular.svg");
+                }
+            }
+            if root.nouvelle-conversation: VerticalLayout {
+                alignment: center;
+                BoutonIcone {
+                    libelle: "Nouvelle conversation";
+                    icone: @image-url("../assets/icones/ic_fluent_compose_20_regular.svg");
+                }
+            }
+        }
+        Rectangle {
+            height: 8px;
+        }
+        VerticalLayout {
+            accessible-role: progress-indicator;
+            accessible-label: "Chargement de la liste";
+            for proportion in [0.55, 0.7, 0.45, 0.62, 0.5, 0.68, 0.4]: LigneSquelette {
+                proportion: proportion;
+            }
+        }
+    }
+}

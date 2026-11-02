@@ -1,0 +1,6 @@
+target/
+*.db
+fixtures-brutes/
+.env*
+*.key
+*.pem
