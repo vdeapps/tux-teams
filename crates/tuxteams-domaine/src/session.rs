@@ -40,6 +40,8 @@ pub enum RaisonEchec {
     ComptePersonnel,
     AccesConditionnel,
     Reseau,
+    /// Le refresh token a été révoqué ou a expiré (`invalid_grant`) : nouvelle connexion requise.
+    SessionExpiree,
     Inattendu,
 }
 
@@ -54,6 +56,8 @@ pub enum EtatConnexion {
     },
     Connecte {
         compte: Compte,
+        /// `false` si le trousseau est indisponible : la session ne survivra pas au redémarrage.
+        session_persistee: bool,
     },
     Echec(RaisonEchec),
 }
@@ -124,6 +128,9 @@ impl RaisonEchec {
                  Une autre méthode de connexion sera nécessaire."
             }
             Self::Reseau => "Le service de connexion est injoignable. Vérifiez votre réseau.",
+            Self::SessionExpiree => {
+                "Votre session a expiré ou a été révoquée. Reconnectez-vous pour continuer."
+            }
             Self::Inattendu => "Réponse inattendue du service de connexion. Réessayez plus tard.",
         }
     }
@@ -186,6 +193,13 @@ mod tests {
         assert_eq!(compte(Some("Marie Anne Dupont")).initiales(), "MD");
         assert_eq!(compte(Some("Zoé")).initiales(), "Z");
         assert_eq!(compte(None).initiales(), "??");
+    }
+
+    #[test]
+    fn une_session_expiree_invite_a_se_reconnecter() {
+        let message = RaisonEchec::SessionExpiree.message();
+        assert!(message.contains("session"), "message : {message}");
+        assert!(message.contains("Reconnectez"), "message : {message}");
     }
 
     #[test]

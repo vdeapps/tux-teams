@@ -1,0 +1,69 @@
+import { Theme } from "theme.slint";
+
+// Bandeau non bloquant (sous la barre supérieure) : message d'état et bouton « Fermer ».
+export component Bandeau inherits Rectangle {
+    in property <string> titre;
+    in property <string> message;
+    callback fermer();
+
+    background: Theme.accent-doux;
+    accessible-role: groupbox;
+    accessible-label: root.titre;
+
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        background: Theme.bordure;
+    }
+
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 12px;
+        Image {
+            y: (parent.height - self.height) / 2;
+            width: 20px;
+            height: 20px;
+            source: @image-url("../assets/icones/ic_fluent_alert_24_regular.svg");
+            colorize: Theme.accent;
+        }
+        Text {
+            text: root.message;
+            font-size: 14px;
+            color: Theme.texte;
+            vertical-alignment: center;
+            wrap: word-wrap;
+            horizontal-stretch: 1;
+        }
+        Rectangle {
+            width: 72px;
+            height: 28px;
+            y: (parent.height - self.height) / 2;
+            border-radius: 4px;
+            background: fermeture.has-hover ? Theme.surface-survol : Theme.surface;
+            border-width: 1px;
+            border-color: Theme.bordure;
+            accessible-role: button;
+            accessible-label: "Fermer le bandeau";
+            accessible-action-default => {
+                root.fermer();
+            }
+            fermeture := TouchArea {
+                clicked => {
+                    root.fermer();
+                }
+            }
+            Text {
+                text: "Fermer";
+                font-size: 12px;
+                font-weight: 600;
+                color: Theme.texte;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                accessible-role: none;
+            }
+        }
+    }
+}

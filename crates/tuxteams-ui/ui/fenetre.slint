@@ -3,7 +3,8 @@ import "../assets/polices/Inter/Inter-SemiBold.ttf";
 import "../assets/polices/Inter/Inter-Bold.ttf";
 import { Theme } from "theme.slint";
 import { Rail } from "rail.slint";
-import { BarreSuperieure } from "barre.slint";
+import { BarreSuperieure, MenuProfil } from "barre.slint";
+import { Bandeau } from "bandeau.slint";
 import { PanneauListe } from "panneau.slint";
 import { ZoneContenu } from "contenu.slint";
 export { Theme }
@@ -15,6 +16,16 @@ export component Fenetre inherits Window {
     // Compte connecté : initiales de l'avatar (« ?? » tant qu'on ignore le nom) et libellé.
     in property <string> initiales: "??";
     in property <string> libelle-profil: "Profil : non connecté";
+    // Nom et e-mail du compte, affichés dans le menu de l'avatar.
+    in property <string> nom-compte;
+    in property <string> email-compte;
+    // Menu de l'avatar (nom, e-mail, « Se déconnecter »).
+    in-out property <bool> menu-profil-ouvert: false;
+    // Bandeau non bloquant : le trousseau est indisponible, le refresh token n'est pas conservé.
+    in-out property <bool> session-non-persistee: false;
+    // Relance silencieuse en cours : fenêtre en squelettes, contenu « Reconnexion… ».
+    in property <bool> chargement: false;
+    callback se-deconnecter();
     out property <color> fond-fenetre: Theme.fond;
 
     preferred-width: 1100px;
@@ -32,6 +43,16 @@ export component Fenetre inherits Window {
             BarreSuperieure {
                 initiales: root.initiales;
                 libelle-profil: root.libelle-profil;
+                profil-clique => {
+                    root.menu-profil-ouvert = !root.menu-profil-ouvert;
+                }
+            }
+            if root.session-non-persistee: Bandeau {
+                titre: "Session non persistée";
+                message: "Le trousseau du bureau est indisponible : vous devrez vous reconnecter au prochain lancement.";
+                fermer => {
+                    root.session-non-persistee = false;
+                }
             }
             HorizontalLayout {
                 // Activité et Conversation ont un panneau de liste ; Calendrier est pleine largeur.
@@ -41,7 +62,32 @@ export component Fenetre inherits Window {
                 }
                 ZoneContenu {
                     vue: rail.actif;
+                    chargement: root.chargement;
                 }
+            }
+        }
+    }
+
+    // Menu de l'avatar : un clic ailleurs le ferme, il se place sous l'avatar, à droite.
+    if root.menu-profil-ouvert: Rectangle {
+        width: root.width;
+        height: root.height;
+        TouchArea {
+            clicked => {
+                root.menu-profil-ouvert = false;
+            }
+        }
+        MenuProfil {
+            x: parent.width - self.width - 16px;
+            y: 48px;
+            nom: root.nom-compte;
+            email: root.email-compte;
+            se-deconnecter => {
+                root.menu-profil-ouvert = false;
+                root.se-deconnecter();
+            }
+            fermer => {
+                root.menu-profil-ouvert = false;
             }
         }
     }

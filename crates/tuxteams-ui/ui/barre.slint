@@ -60,11 +60,32 @@ component ChampRecherche inherits Rectangle {
 component Avatar inherits Rectangle {
     in property <string> initiales: "??";
     in property <string> libelle-profil: "Profil : non connecté";
+    callback clique();
 
     width: 32px;
     height: 32px;
-    accessible-role: image;
+    accessible-role: button;
     accessible-label: root.libelle-profil;
+    accessible-action-default => {
+        root.clique();
+    }
+
+    focus := FocusScope {
+        key-pressed(evenement) => {
+            if (evenement.text == "\n" || evenement.text == " ") {
+                root.clique();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    zone := TouchArea {
+        clicked => {
+            focus.focus();
+            root.clique();
+        }
+    }
 
     Rectangle {
         border-radius: self.width / 2;
@@ -76,6 +97,18 @@ component Avatar inherits Rectangle {
             color: Theme.texte-sur-accent;
             accessible-role: none;
         }
+    }
+
+    // Anneau de focus visible (2 px, accent), détaché de l'avatar.
+    Rectangle {
+        x: -3px;
+        y: -3px;
+        width: parent.width + 6px;
+        height: parent.height + 6px;
+        border-radius: self.width / 2;
+        border-width: 2px;
+        border-color: Theme.accent;
+        visible: focus.has-focus;
     }
 
     // Pastille « hors ligne » : anneau gris détouré sur la surface.
@@ -101,6 +134,7 @@ component Avatar inherits Rectangle {
 export component BarreSuperieure inherits Rectangle {
     in property <string> initiales: "??";
     in property <string> libelle-profil: "Profil : non connecté";
+    callback profil-clique();
 
     height: 48px;
     background: Theme.surface;
@@ -123,7 +157,96 @@ export component BarreSuperieure inherits Rectangle {
     Avatar {
         initiales: root.initiales;
         libelle-profil: root.libelle-profil;
+        clique => {
+            root.profil-clique();
+        }
         x: parent.width - self.width - 16px;
         y: (parent.height - self.height) / 2;
+    }
+}
+
+// Menu de l'avatar : compte connecté (nom, e-mail) puis « Se déconnecter ».
+export component MenuProfil inherits Rectangle {
+    in property <string> nom;
+    in property <string> email;
+    callback se-deconnecter();
+    callback fermer();
+
+    width: 280px;
+    height: contenu.preferred-height;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: Theme.bordure;
+    background: Theme.surface;
+    drop-shadow-blur: 16px;
+    drop-shadow-offset-y: 4px;
+    drop-shadow-color: #00000033;
+    accessible-role: groupbox;
+    accessible-label: "Menu du profil";
+
+    // Échap ferme le menu ; le focus y entre à l'ouverture.
+    focus := FocusScope {
+        init => {
+            self.focus();
+        }
+        key-pressed(evenement) => {
+            if (evenement.text == Key.Escape) {
+                root.fermer();
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    contenu := VerticalLayout {
+        padding: 8px;
+        spacing: 4px;
+        VerticalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            spacing: 2px;
+            Text {
+                text: root.nom;
+                font-size: 14px;
+                font-weight: 600;
+                color: Theme.texte;
+                overflow: elide;
+            }
+            Text {
+                text: root.email;
+                font-size: 12px;
+                color: Theme.texte-secondaire;
+                overflow: elide;
+            }
+        }
+        Rectangle {
+            height: 1px;
+            background: Theme.bordure;
+        }
+        Rectangle {
+            height: 36px;
+            border-radius: 4px;
+            background: action.has-hover ? Theme.surface-survol : Theme.surface;
+            accessible-role: button;
+            accessible-label: "Se déconnecter";
+            accessible-action-default => {
+                root.se-deconnecter();
+            }
+            action := TouchArea {
+                clicked => {
+                    root.se-deconnecter();
+                }
+            }
+            Text {
+                x: 8px;
+                text: "Se déconnecter";
+                font-size: 14px;
+                color: Theme.texte;
+                vertical-alignment: center;
+                accessible-role: none;
+            }
+        }
     }
 }

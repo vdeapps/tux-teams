@@ -11,7 +11,10 @@ use base64::Engine as _;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use reqwest::Client;
 use serde::Deserialize;
-use tuxteams_application::ports::jetons::{DemandeCode, ErreurAuth, EtatSondage, PortConnexion};
+use tuxteams_application::ports::jetons::{
+    Authentifie, DemandeCode, ErreurAuth, EtatSondage, PortConnexion, PortRenouvellement,
+    SecretRefresh,
+};
 use tuxteams_domaine::session::Compte;
 use url::Url;
 
@@ -23,6 +26,7 @@ const TAILLE_MAX_REPONSE: usize = 64 * 1024;
 /// Intervalle de sondage retenu quand le service annonce une valeur nulle ou absente.
 const INTERVALLE_PAR_DEFAUT: u64 = 5;
 const GRANT_DEVICE_CODE: &str = "urn:ietf:params:oauth:grant-type:device_code";
+const GRANT_REFRESH: &str = "refresh_token";
 
 pub struct ClientDeviceCode {
     config: ConfigAuth,
@@ -41,6 +45,7 @@ struct ReponseCode {
 #[derive(Deserialize)]
 struct ReponseJeton {
     access_token: Option<String>,
+    refresh_token: Option<String>,
     id_token: Option<String>,
 }
 
@@ -125,6 +130,23 @@ fn compte_depuis_id_token(id_token: &str) -> Result<Compte, ErreurAuth> {
         .map_err(|_| ErreurAuth::ComptePersonnel)
 }
 
+/// Authentification portée par une réponse de jeton : `None` si la réponse ne porte pas
+/// de `access_token` (c'est alors une erreur OAuth à interpréter).
+fn authentifie_depuis_reponse(corps: &[u8]) -> Result<Option<Authentifie>, ErreurAuth> {
+    let Ok(jeton) = serde_json::from_slice::<ReponseJeton>(corps) else {
+        return Ok(None);
+    };
+    if jeton.access_token.is_none() {
+        return Ok(None);
+    }
+    let id_token = jeton.id_token.ok_or_else(|| inattendu("id_token_absent"))?;
+    let compte = compte_depuis_id_token(&id_token)?;
+    Ok(Some(Authentifie {
+        compte,
+        refresh: jeton.refresh_token.map(SecretRefresh::new),
+    }))
+}
+
 #[async_trait]
 impl PortConnexion for ClientDeviceCode {
     async fn start_device_code(&self) -> Result<DemandeCode, ErreurAuth> {
@@ -170,16 +192,33 @@ impl PortConnexion for ClientDeviceCode {
             ("device_code", demande.code_appareil.as_str()),
         ];
         let (_, corps) = self.poster(url, &champs).await?;
-        if let Ok(jeton) = serde_json::from_slice::<ReponseJeton>(&corps)
-            && jeton.access_token.is_some()
-        {
-            let id_token = jeton.id_token.ok_or_else(|| inattendu("id_token_absent"))?;
-            return compte_depuis_id_token(&id_token).map(EtatSondage::Termine);
+        if let Some(authentifie) = authentifie_depuis_reponse(&corps)? {
+            return Ok(EtatSondage::Termine(authentifie));
         }
         match erreurs::code_oauth(&corps).as_deref() {
             Some("authorization_pending") => Ok(EtatSondage::EnAttente),
             Some("slow_down") => Ok(EtatSondage::PlusLent),
             _ => Err(erreurs::depuis_corps(&corps)),
+        }
+    }
+}
+
+#[async_trait]
+impl PortRenouvellement for ClientDeviceCode {
+    /// Refresh grant (`grant_type=refresh_token`) sur l'endpoint de jetons v2.0 du tenant configuré.
+    /// Seul le statut décisif est la présence d'`access_token` ; sinon le champ `error` décide.
+    async fn refresh(&self, refresh: &SecretRefresh) -> Result<Authentifie, ErreurAuth> {
+        let url = self.endpoint("token")?;
+        let champs = [
+            ("client_id", self.config.client_id.as_str()),
+            ("grant_type", GRANT_REFRESH),
+            ("refresh_token", refresh.exposer()),
+            ("scope", self.config.scopes.as_str()),
+        ];
+        let (_, corps) = self.poster(url, &champs).await?;
+        match authentifie_depuis_reponse(&corps)? {
+            Some(authentifie) => Ok(authentifie),
+            None => Err(erreurs::depuis_corps(&corps)),
         }
     }
 }

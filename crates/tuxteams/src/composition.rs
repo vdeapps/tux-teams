@@ -1,4 +1,4 @@
-//! Composition : adaptateurs du bureau et assemblage du cas d'usage de connexion.
+//! Composition : adaptateurs du bureau et assemblage des cas d'usage (connexion, session, déconnexion).
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -6,12 +6,15 @@ use std::time::Duration;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use tuxteams_application::cas::connexion::CasConnexion;
+use tuxteams_application::cas::deconnexion::CasDeconnexion;
+use tuxteams_application::cas::session::CasSession;
+use tuxteams_application::ports::cache::{ErreurCache, PortCache};
 use tuxteams_application::ports::horloge::Horloge;
 use tuxteams_application::ports::jetons::ErreurAuth;
 use tuxteams_application::ports::navigateur::{
     ErreurNavigateur, ErreurPressePapiers, PortNavigateur, PortPressePapiers,
 };
-use tuxteams_auth::{ClientDeviceCode, ConfigAuth};
+use tuxteams_auth::{ClientDeviceCode, CoffreSecretService, ConfigAuth};
 use url::Url;
 
 /// Horloge du système, attente par le runtime tokio.
@@ -61,15 +64,46 @@ impl PortPressePapiers for PressePapiersSysteme {
     }
 }
 
-/// Assemble le cas d'usage de connexion avec les adaptateurs réels.
-pub fn assembler_connexion(
-    config: ConfigAuth,
-    horloge: Arc<HorlogeSysteme>,
-) -> Result<Arc<CasConnexion>, ErreurAuth> {
-    Ok(Arc::new(CasConnexion::new(
-        Arc::new(ClientDeviceCode::new(config)?),
-        horloge,
+/// Cache local : le cache SQLite n'existe pas encore, il n'y a donc rien à vider.
+// TODO(tache-6): remplacer par l'adaptateur `tuxteams-cache` (vidage de la base à la déconnexion).
+pub struct CacheAbsent;
+
+#[async_trait]
+impl PortCache for CacheAbsent {
+    async fn clear_all(&self) -> Result<(), ErreurCache> {
+        Ok(())
+    }
+}
+
+/// Cas d'usage assemblés avec les adaptateurs réels.
+pub struct Services {
+    pub horloge: Arc<HorlogeSysteme>,
+    pub connexion: Arc<CasConnexion>,
+    pub session: Arc<CasSession>,
+    pub deconnexion: Arc<CasDeconnexion>,
+}
+
+pub fn assembler(config: ConfigAuth) -> Result<Services, ErreurAuth> {
+    let horloge = Arc::new(HorlogeSysteme);
+    let identite = Arc::new(ClientDeviceCode::new(config)?);
+    let coffre = Arc::new(CoffreSecretService::new());
+    let session = Arc::new(CasSession::new(
+        coffre.clone(),
+        identite.clone(),
+        horloge.clone(),
+    ));
+    let connexion = Arc::new(CasConnexion::new(
+        identite,
+        horloge.clone(),
         Arc::new(NavigateurSysteme),
         Arc::new(PressePapiersSysteme::default()),
-    )))
+        session.clone(),
+    ));
+    let deconnexion = Arc::new(CasDeconnexion::new(coffre, Arc::new(CacheAbsent)));
+    Ok(Services {
+        horloge,
+        connexion,
+        session,
+        deconnexion,
+    })
 }

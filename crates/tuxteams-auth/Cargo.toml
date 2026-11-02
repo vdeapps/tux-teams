@@ -10,14 +10,21 @@ tuxteams-domaine = { workspace = true }
 tuxteams-application = { workspace = true }
 async-trait = { workspace = true }
 base64 = { workspace = true }
+oo7 = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 url = { workspace = true }
 
+[features]
+# Active les tests d'intégration du Secret Service de session (`make test-integration`).
+integration = []
+
 [dev-dependencies]
+tracing-subscriber = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 wiremock = { workspace = true }
 

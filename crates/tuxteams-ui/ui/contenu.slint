@@ -4,12 +4,24 @@ import { Theme } from "theme.slint";
 export component ZoneContenu inherits Rectangle {
     // 0 Activité, 1 Conversation, 2 Calendrier, 3 Paramètres.
     in property <int> vue;
+    // Relance silencieuse en cours : texte sobre à la place de l'état vide.
+    in property <bool> chargement: false;
 
     background: Theme.fond;
     accessible-role: groupbox;
     accessible-label: "Contenu";
 
-    VerticalLayout {
+    if root.chargement: Text {
+        text: "Reconnexion…";
+        font-size: 16px;
+        color: Theme.texte-secondaire;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        accessible-role: text;
+        accessible-label: "Reconnexion en cours";
+    }
+
+    if !root.chargement: VerticalLayout {
         alignment: center;
         padding: 24px;
         spacing: 8px;

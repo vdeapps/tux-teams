@@ -24,6 +24,7 @@ pub(crate) fn depuis_corps(corps: &[u8]) -> ErreurAuth {
     }
     match erreur.error.as_deref() {
         Some("expired_token" | "code_expired") => ErreurAuth::CodeExpire,
+        Some("invalid_grant") => ErreurAuth::SessionRevoquee,
         Some("authorization_declined" | "access_denied") => ErreurAuth::Refuse,
         Some(code) if code_sur(code) => ErreurAuth::Inattendu(code.to_owned()),
         _ => ErreurAuth::Inattendu("inconnu".to_owned()),

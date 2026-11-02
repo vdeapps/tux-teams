@@ -1,0 +1,11 @@
+{
+  "token_type": "Bearer",
+  "scope": "https://api.spaces.skype.com/user_impersonation openid profile offline_access",
+  "expires_in": 3599,
+  "id_token_claims": {
+    "tid": "00000000-0000-0000-0000-0000000000aa",
+    "oid": "00000000-0000-0000-0000-000000000001",
+    "name": "Alex Example",
+    "email": "alex@contoso.example"
+  }
+}

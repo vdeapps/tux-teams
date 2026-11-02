@@ -1,10 +1,14 @@
-.PHONY: run test lint format format-check typecheck qualite
+.PHONY: run test test-integration lint format format-check typecheck qualite
 
 run:
 	cargo run -p tuxteams
 
 test:
 	cargo test --workspace
+
+# Tests d'intégration qui exigent un Secret Service de session (D-Bus) ; hors `make test`.
+test-integration:
+	cargo test -p tuxteams-auth --features integration --test coffre
 
 lint:
 	cargo fmt --all -- --check

@@ -63,7 +63,7 @@ pub fn brancher(
     cas: Arc<CasConnexion>,
     horloge: Arc<dyn Horloge>,
     runtime: Handle,
-    sur_connecte: Arc<dyn Fn(Compte) + Send + Sync>,
+    sur_connecte: Arc<dyn Fn(Compte, bool) + Send + Sync>,
 ) {
     // Une tentative = une génération : les notifications d'une tentative abandonnée sont ignorées.
     let generation = Arc::new(AtomicU64::new(0));
@@ -104,8 +104,12 @@ pub fn brancher(
                         let Some(fenetre) = faible.upgrade() else {
                             return;
                         };
-                        if let EtatConnexion::Connecte { compte } = etat {
-                            sur_connecte(compte);
+                        if let EtatConnexion::Connecte {
+                            compte,
+                            session_persistee,
+                        } = etat
+                        {
+                            sur_connecte(compte, session_persistee);
                         } else {
                             afficher_etat(&fenetre, &etat, maintenant);
                         }

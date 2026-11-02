@@ -1,12 +1,15 @@
 //! Aides de test : assemble les réponses du point de terminaison de jeton à l'exécution,
 //! pour ne stocker aucun jeton (ni JWT encodé) dans les fixtures.
 
+// Chaque fichier de test n'utilise qu'une partie de ces aides.
+#![allow(dead_code)]
+
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde_json::{Value, json};
 
-const VALEUR_ACCES_FICTIVE: &str = "valeur-acces-fictive";
-const VALEUR_RENOUVELLEMENT_FICTIVE: &str = "valeur-renouvellement-fictive";
+pub const VALEUR_ACCES_FICTIVE: &str = "valeur-acces-fictive";
+pub const VALEUR_RENOUVELLEMENT_FICTIVE: &str = "valeur-renouvellement-fictive";
 
 /// JWT non signé `en-tête.charge.` construit depuis des claims en clair.
 fn jwt_non_signe(claims: &Value) -> String {

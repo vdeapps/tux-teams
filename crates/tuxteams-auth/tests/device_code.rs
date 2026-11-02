@@ -297,12 +297,34 @@ async fn un_jeton_valide_donne_le_compte_de_l_id_token() {
         .poll_device_code(&demande_fictive())
         .await;
 
-    let Ok(EtatSondage::Termine(compte)) = etat else {
+    let Ok(EtatSondage::Termine(authentifie)) = etat else {
         panic!("état inattendu : {etat:?}")
     };
+    let compte = authentifie.compte;
     assert_eq!(compte.nom.as_deref(), Some("Alex Example"));
     assert_eq!(compte.email.as_deref(), Some("alex@contoso.example"));
     assert_eq!(compte.tenant, "00000000-0000-0000-0000-0000000000aa");
+}
+
+#[tokio::test]
+async fn la_connexion_remet_le_refresh_token_recu_sans_l_exposer_par_debug() {
+    let serveur = MockServer::start().await;
+    repondre(&serveur, CHEMIN_JETON, 200, &commun::reponse_jeton(SUCCES)).await;
+
+    let etat = client(config(&serveur))
+        .poll_device_code(&demande_fictive())
+        .await;
+
+    let Ok(EtatSondage::Termine(authentifie)) = etat else {
+        panic!("état inattendu : {etat:?}")
+    };
+    let refresh = authentifie.refresh.as_ref().expect("refresh token remis");
+    assert_eq!(refresh.exposer(), commun::VALEUR_RENOUVELLEMENT_FICTIVE);
+    let sortie = format!("{authentifie:?}");
+    assert!(
+        !sortie.contains(commun::VALEUR_RENOUVELLEMENT_FICTIVE),
+        "{sortie}"
+    );
 }
 
 #[tokio::test]

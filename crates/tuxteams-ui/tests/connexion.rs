@@ -1,5 +1,7 @@
 //! Écran de connexion via le backend de test Slint (sans affichage ni réseau).
 
+mod commun;
+
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -90,6 +92,7 @@ fn banc() -> Banc {
         Arc::new(HorlogeFixe),
         bureau.clone(),
         bureau.clone(),
+        commun::session_sans_trousseau(),
     ));
     let fenetre = FenetreConnexion::new().expect("fenêtre créable");
     brancher(
@@ -97,7 +100,7 @@ fn banc() -> Banc {
         cas,
         Arc::new(HorlogeFixe),
         runtime.handle().clone(),
-        Arc::new(|_| {}),
+        Arc::new(|_, _| {}),
     );
     fenetre.show().expect("fenêtre affichable");
     Banc {

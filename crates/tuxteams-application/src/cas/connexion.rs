@@ -7,6 +7,7 @@ use tokio_util::sync::CancellationToken;
 use tuxteams_domaine::session::{EtatConnexion, RaisonEchec};
 use url::Url;
 
+use crate::cas::session::{CasSession, Persistance};
 use crate::ports::horloge::Horloge;
 use crate::ports::jetons::{EtatSondage, PortConnexion};
 use crate::ports::navigateur::{PortNavigateur, PortPressePapiers};
@@ -24,6 +25,7 @@ pub struct CasConnexion {
     horloge: Arc<dyn Horloge>,
     navigateur: Arc<dyn PortNavigateur>,
     presse_papiers: Arc<dyn PortPressePapiers>,
+    session: Arc<CasSession>,
 }
 
 impl CasConnexion {
@@ -32,12 +34,14 @@ impl CasConnexion {
         horloge: Arc<dyn Horloge>,
         navigateur: Arc<dyn PortNavigateur>,
         presse_papiers: Arc<dyn PortPressePapiers>,
+        session: Arc<CasSession>,
     ) -> Self {
         Self {
             connexion,
             horloge,
             navigateur,
             presse_papiers,
+            session,
         }
     }
 
@@ -79,7 +83,13 @@ impl CasConnexion {
                 Ok(EtatSondage::PlusLent) => {
                     intervalle = (intervalle + MAJORATION_SLOW_DOWN).min(INTERVALLE_MAX);
                 }
-                Ok(EtatSondage::Termine(compte)) => return EtatConnexion::Connecte { compte },
+                Ok(EtatSondage::Termine(authentifie)) => {
+                    let persistance = self.session.save(&authentifie).await;
+                    return EtatConnexion::Connecte {
+                        compte: authentifie.compte,
+                        session_persistee: persistance == Persistance::Active,
+                    };
+                }
                 Err(erreur) => return EtatConnexion::Echec(erreur.raison()),
             }
         }
@@ -116,9 +126,12 @@ mod tests {
 
     use async_trait::async_trait;
     use chrono::{DateTime, TimeZone, Utc};
-    use tuxteams_domaine::session::{Compte, RaisonEchec};
+    use tuxteams_domaine::session::RaisonEchec;
 
     use super::*;
+    use crate::cas::doubles::{
+        CoffreFaux, HorlogeSansFin, RenouvellementFaux, VALEUR_STOCKEE, authentifie,
+    };
     use crate::ports::jetons::{DemandeCode, ErreurAuth};
     use crate::ports::navigateur::{ErreurNavigateur, ErreurPressePapiers};
 
@@ -132,8 +145,17 @@ mod tests {
         }
     }
 
-    fn compte() -> Compte {
-        Compte::depuis_identite("tenant-a", Some("Alex Example"), None).expect("compte")
+    fn termine() -> Result<EtatSondage, ErreurAuth> {
+        Ok(EtatSondage::Termine(authentifie(Some(VALEUR_STOCKEE))))
+    }
+
+    /// Session avec un coffre vide et un renouvellement inutilisé.
+    fn session(coffre: Arc<CoffreFaux>) -> Arc<CasSession> {
+        Arc::new(CasSession::new(
+            coffre,
+            RenouvellementFaux::new(Err(ErreurAuth::Reseau)),
+            Arc::new(HorlogeSansFin),
+        ))
     }
 
     /// Port scripté : rend les sondages dans l'ordre, puis `EnAttente`.
@@ -238,7 +260,13 @@ mod tests {
 
     fn cas(connexion: Arc<ConnexionFausse>, horloge: Arc<HorlogeFausse>) -> CasConnexion {
         let bureau = bureau(false);
-        CasConnexion::new(connexion, horloge, bureau.clone(), bureau)
+        CasConnexion::new(
+            connexion,
+            horloge,
+            bureau.clone(),
+            bureau,
+            session(CoffreFaux::vide()),
+        )
     }
 
     /// Joue la connexion et rend les états notifiés dans l'ordre.
@@ -251,8 +279,7 @@ mod tests {
 
     #[tokio::test]
     async fn le_sondage_respecte_l_intervalle_annonce() {
-        let connexion =
-            ConnexionFausse::new(demande(7, 900), vec![Ok(EtatSondage::Termine(compte()))]);
+        let connexion = ConnexionFausse::new(demande(7, 900), vec![termine()]);
         let horloge = HorlogeFausse::new();
         let cas = cas(connexion, horloge.clone());
 
@@ -276,7 +303,7 @@ mod tests {
             vec![
                 Ok(EtatSondage::EnAttente),
                 Ok(EtatSondage::EnAttente),
-                Ok(EtatSondage::Termine(compte())),
+                termine(),
             ],
         );
         let horloge = HorlogeFausse::new();
@@ -298,7 +325,7 @@ mod tests {
             vec![
                 Ok(EtatSondage::PlusLent),
                 Ok(EtatSondage::EnAttente),
-                Ok(EtatSondage::Termine(compte())),
+                termine(),
             ],
         );
         let horloge = HorlogeFausse::new();
@@ -340,8 +367,7 @@ mod tests {
 
     #[tokio::test]
     async fn le_code_est_notifie_avec_son_expiration_avant_le_sondage() {
-        let connexion =
-            ConnexionFausse::new(demande(5, 900), vec![Ok(EtatSondage::Termine(compte()))]);
+        let connexion = ConnexionFausse::new(demande(5, 900), vec![termine()]);
         let horloge = HorlogeFausse::new();
         let depart = horloge.now();
         let cas = cas(connexion, horloge);
@@ -362,9 +388,64 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn une_connexion_aboutie_conserve_le_refresh_token_et_signale_la_persistance() {
+        let coffre = CoffreFaux::vide();
+        let connexion = ConnexionFausse::new(demande(5, 900), vec![termine()]);
+        let bureau = bureau(false);
+        let cas = CasConnexion::new(
+            connexion,
+            HorlogeFausse::new(),
+            bureau.clone(),
+            bureau,
+            session(coffre.clone()),
+        );
+
+        let etats = jouer(&cas, CancellationToken::new()).await;
+
+        assert_eq!(coffre.valeur().as_deref(), Some(VALEUR_STOCKEE));
+        assert!(
+            matches!(
+                etats.last(),
+                Some(EtatConnexion::Connecte {
+                    session_persistee: true,
+                    ..
+                })
+            ),
+            "{etats:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn sans_trousseau_la_connexion_aboutit_en_signalant_la_session_non_persistee() {
+        let coffre = CoffreFaux::avec(None, true);
+        let connexion = ConnexionFausse::new(demande(5, 900), vec![termine()]);
+        let bureau = bureau(false);
+        let cas = CasConnexion::new(
+            connexion,
+            HorlogeFausse::new(),
+            bureau.clone(),
+            bureau,
+            session(coffre.clone()),
+        );
+
+        let etats = jouer(&cas, CancellationToken::new()).await;
+
+        assert!(
+            matches!(
+                etats.last(),
+                Some(EtatConnexion::Connecte {
+                    session_persistee: false,
+                    ..
+                })
+            ),
+            "{etats:?}"
+        );
+        assert_eq!(coffre.valeur(), None);
+    }
+
+    #[tokio::test]
     async fn l_annulation_arrete_le_sondage() {
-        let connexion =
-            ConnexionFausse::new(demande(5, 900), vec![Ok(EtatSondage::Termine(compte()))]);
+        let connexion = ConnexionFausse::new(demande(5, 900), vec![termine()]);
         let annulation = CancellationToken::new();
         let horloge = Arc::new(HorlogeFausse {
             maintenant: Mutex::new(Utc.with_ymd_and_hms(2026, 11, 2, 9, 0, 0).unwrap()),
@@ -407,6 +488,7 @@ mod tests {
             HorlogeFausse::new(),
             bureau.clone(),
             bureau.clone(),
+            session(CoffreFaux::vide()),
         );
         let url = Url::parse("https://login.microsoft.com/device").expect("url");
 
@@ -427,6 +509,7 @@ mod tests {
             HorlogeFausse::new(),
             bureau.clone(),
             bureau.clone(),
+            session(CoffreFaux::vide()),
         );
         let url = Url::parse("https://login.microsoft.com/device").expect("url");
 

@@ -1,6 +1,8 @@
 //! Chaîne complète sur une vraie boucle d'événements (backend de test) : clic « Se connecter »,
 //! tâche asynchrone, code affiché, puis compte connecté. Un seul test par processus.
 
+mod commun;
+
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -10,7 +12,9 @@ use i_slint_backend_testing::ElementHandle;
 use slint::ComponentHandle;
 use tuxteams_application::cas::connexion::CasConnexion;
 use tuxteams_application::ports::horloge::Horloge;
-use tuxteams_application::ports::jetons::{DemandeCode, ErreurAuth, EtatSondage, PortConnexion};
+use tuxteams_application::ports::jetons::{
+    Authentifie, DemandeCode, ErreurAuth, EtatSondage, PortConnexion,
+};
 use tuxteams_application::ports::navigateur::{
     ErreurNavigateur, ErreurPressePapiers, PortNavigateur, PortPressePapiers,
 };
@@ -35,7 +39,10 @@ impl PortConnexion for ServiceFictif {
     async fn poll_device_code(&self, _: &DemandeCode) -> Result<EtatSondage, ErreurAuth> {
         let compte =
             Compte::depuis_identite("tenant-a", Some("Alex Example"), None).expect("compte");
-        Ok(EtatSondage::Termine(compte))
+        Ok(EtatSondage::Termine(Authentifie {
+            compte,
+            refresh: None,
+        }))
     }
 }
 
@@ -77,6 +84,7 @@ fn cliquer_se_connecter_mene_au_compte_connecte_sur_la_boucle_d_evenements() {
         Arc::new(HorlogeRapide),
         Arc::new(BureauInerte),
         Arc::new(BureauInerte),
+        commun::session_sans_trousseau(),
     ));
     let connecte: Arc<Mutex<Option<Compte>>> = Arc::default();
     let fenetre = FenetreConnexion::new().expect("fenêtre créable");
@@ -87,7 +95,7 @@ fn cliquer_se_connecter_mene_au_compte_connecte_sur_la_boucle_d_evenements() {
         runtime.handle().clone(),
         {
             let connecte = connecte.clone();
-            Arc::new(move |compte| {
+            Arc::new(move |compte, _| {
                 *connecte.lock().expect("verrou") = Some(compte);
                 let _ = slint::quit_event_loop();
             })

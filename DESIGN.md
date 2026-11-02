@@ -92,6 +92,12 @@ HiDPI, clavier.
 - **Calendrier** : grille horaire 30 min, ligne « maintenant » rouge, événements en blocs
   arrondis à barre latérale de couleur (réunion Teams = accent), bouton « Rejoindre » visible
   10 min avant.
+- **Menu de l'avatar** : clic (ou Entrée/Espace) sur l'avatar ; carte 280 px sous l'avatar, à droite
+  (rayon 8 px, `surface`, bordure `bordure`, ombre douce) : nom (14 px 600), e-mail (12 px
+  `texte-secondaire`), séparateur, « Se déconnecter » (ligne 36 px, survol `surface-survol`). Échap ou
+  clic ailleurs le ferme.
+- **Bandeau** (non bloquant, sous la barre supérieure) : fond `accent-doux`, icône `accent`, message 14 px
+  `texte` sur deux lignes si besoin, bouton « Fermer ». Premier usage : « session non persistée ».
 - **États** : squelettes de chargement (pas de spinner plein écran), états vides illustrés avec
   une action, erreurs en bandeau non bloquant avec « Réessayer », hors ligne signalé en haut.
 
